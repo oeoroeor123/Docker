@@ -1,0 +1,106 @@
+가상 머신 켜기
+MobaXterm 설치 후 실행하기
+* 계정 : lsj / 1234
+
+1. jdk 설치하기
+$ apt search openjdk  # 설치할 패키지 이름 확인하기
+나에게 맞는 java 찾아서 복사 (ctrl + insert)
+
+$ sudo apt install openjdk-11-jdk  # 설치
+설치 시, 계속 설치 할건지 메시지 나옴
+Do you want to continue? [Y/n] > y 입력
+
+$ java -version  # 설치된 java 버전 확인
+
+$ update-alternatives --list java  # JAVA_HOME이 어디인지 확인하기 위해 입력
+
+$ vi ~/.profile  # 환경 설정 파일 편집
+# JAVA_HOME
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+export PATH=$JAVA_HOME/bin:$PATH
+
+$ source ~/.profile  # 환경 설정 파일 변경내용 바로 적용
+
+2. 톰캣 설치하기 (톰캣은 /opt 디렉터리에 내려 받음)
+1) 톰캣 홈페이지에서 다운로드 받을 링크 주소 복사하기 (zip 파일 받은 경우)
+톰캣 9 > core > zip > 우클릭하여 링크 주소 복사
+ -> https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.98/bin/apache-tomcat-9.0.98.zip
+
+$ cd /opt
+$ sudo wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.98/bin/apache-tomcat-9.0.98.zip  # zip 내려 받기
+$ sudo apt update  # 패키지 관리 도구 업데이트 (관리자 계정으로 진행)
+$ sudo apt install unzip  # unzip 패키지 설치 (zip 파일의 압축을 푸는 프로그램)
+$ unzip apache-tomcat-9.0.98.zip  # 압축 풀기
+
+2) 톰캣 홈페이지에서 다운로드 받을 링크 주소 복사하기 (tar.gz 파일 받은 경우)
+톰캣 9 > core > tar.gz > 우클릭하여 링크 주소 복사
+ -> https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.98/bin/apache-tomcat-9.0.98.tar.gz
+$ cd /opt
+$ sudo wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.98/bin/apache-tomcat-9.0.98.tar.gz  # tar.gz 내려 받기
+$ sudo tar -xzvf apache-tomcat-9.0.98.tar.gz  # 압축 풀기 (-x : 압축 풀기, -z : gz 압축 풀기, -v : 처리 과정 화면에 출력, -f : tar 아카이브 파일 기본 옵션)
+이후 공통 작업)
+
+apache-tomcat-9.0.98 디렉터리를 소유자가 가지도록 소유권을 변경한다.
+$ sudo chown -R lsj:lsj /opt/apache-tomcat-9.0.98  # /opt/apache-tomcat-9.0.98 디렉터리의(-R : 하위디렉터리 포함) 소유권을 lsj 유저로 변경 (lsj:lsj -> owner:group, 사용자는 기본적으로 자신을 그룹으로 가진다.)
+$ vi ~/.profile  # 환경 변수 등록
+# CATALINA_HOME
+export CATALINA_HOME=/opt/apache-tomcat-9.0.98
+export PATH=$CATALINA_HOME:$PATH
+$ source ~/.profile  # 환경 변수 적용
+$ cd ~  # 홈 디렉터리로 이동
+
+3. MySQL 설치하기
+$ apt search mysql  # mysql 패키지 이름 확인
+$ sudo apt install -y mysql-server  # mysql 8.0 설치
+$ mysql --version  # 버전 확인
+
+4. 프로젝트 데이터베이스 스크립트 파일(.sql) 실행해서 DB 구축하기
+$ sudo mysql -u root -p  # mysql 실행하고 root 계정으로 접속하기 (비번 물어보면 root 입력)
+mysql> CREATE USER 'greenit'@'%' IDENTIFIED BY 'greenit';  # greenit/greenit 계정 생성, '%'를 사용하면 외부 접근이 가능한 사용자로 설정함
+######
+  혹시 아이디와 같은 비번 생성 시 ERROR 1819 발생하면 show variables like 'validate_password%'; 통해 비밀번호 생성 규칙 확인하고 아래와 같이 규칙을 완화하기
+  mysql> SET GLOBAL validate_password.policy=LOW;  
+  mysql> SET GLOBAL validate_password.check_user_name=OFF;  비밀번호에 계정이름 사용 가능
+  mysql> SET GLOBAL validate_password.length=5;  비밀번호 최소 5자 이상
+#####
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'greenit'@'%';  # 권한 부여
+mysql> exit
+(호스트에서 Powershell 실행하고 작업 수행)
+$ cd <.sql 파일이 저장된 디렉터리>
+$ scp data.sql <사용자계정>@192.168.56.1:~  # 호스트에 있는 data.sql 파일을 게스트(서버)의 홈 디렉터리로 이동 (MobaXterm의 경우 SSH Browser에서 드래그로 해결 가능)
+(MobaXterm으로 다시 서버에 접속하고 작업 수행)
+$ cat ~/data.sql | mysql -u greenit -p  # data.sql 파일을 열고, mysql을 실행하면 해당 스크립트가 자동으로 실행 (비번 물어보면 greenit 입력)
+
+5. 프로젝트 소스 코드 수정하기
+서버에 톰캣과 mysql이 모두 함께 존재하므로 소스코드에서 데이터베이스 url을 localhost 또는 127.0.0.1로 수정한다.
+
+sts 실행 > semiapp (실행하고자 하는 프로젝트) > root-context.xml >
+1) jdbcUrl : 127.0.0.1로 수정 
+2) username : greenit로 수정
+3) password : greenit로 수정
+
+6. 프로젝트 빌드하기
+[프로젝트 우클릭] - [Run As] - [Maven build...] - Goals: clean package 입력
+
+7. 빌드된 war 파일 서버로 보내기
+(호스트에서 Powershell 실행하고 작업 수행)
+$ cd <war 파일이 저장된 디렉터리>
+디렉터리 위치는 빌드 성공 시, console에 경로 찍힘
+$ scp myapp.war <사용자계정(lsj)>@192.168.56.1:~
+
+8. war 배포하기
+(mobaxterm에서 작업)
+$ mv ~/myapp.war /opt/apache-tomcat-9.0.98/webapps
+$ /opt/apache-tomcat-9.0.98/bin/startup.sh  # 톰캣 구동
+$ /opt/apache-tomcat-9.0.98/bin/shutdown.sh  # 톰캣 종료
+
+9. 가상 머신 네트워크(virtualbox) 설정에서 8080 포트 열기
+[머신] - [설정] - [네트워크] - [어댑터1] - [포트 포워딩] 버튼 클릭 후 규칙 추가
+192.168.56.1  8080  10.0.2.15  8080
+
+10. 배포 확인하기
+확인 전에 mobaxterm에서 톰캣 실행 중인지 체크 필요 !
+$ ps > 톰캣 실행 안되고 있으면,
+$ /opt/apache-tomcat-9.0.98/bin/startup.sh > 로 톰캣 실행
+
+브라우저 열고 http://192.168.56.1:8080/myapp

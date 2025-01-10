@@ -1,0 +1,18 @@
+공개키와 개인키
+
+powershell 실행 후 작업한다. (키는 어디서 만들든 상관 없음, 서버에서도 만들기 가능)
+
+1. ssh-keygen 명령으로 공개키(자물쇠)와 개인키(열쇠)를 만든다.
+$ ssh-keygen -t rsa -b 2048
+rsa 알고리즘을 사용하고, 2048비트(256바이트)로 만든다.
+C:/Users/사용자명/.ssh 디렉터리에 공개키와 개인키가 파일로 생성된다.
+(공개키는 id_rsa.pub 이름으로 생성된다.)
+(개인키는 id_rsa이름으로 생성된다.)
+
+2. 공개키는 서버에 저장한다.
+$ scp C:/Users/사용자명/.ssh/id_rsa.pub <계정명>@<ip주소>:~/.ssh/authorized_keys
+공개키는 서버의 ~/.ssh/authorized_keys 파일로 저장한다.
+
+3. 개인키는 개인 pc에 저장한다.
+mobaxterm 열고, [Edit Session] - [Advanced SSH settings] -
+Use private key 선택 후 공개키 위치 선택 (C:/Users/사용자명/.ssh/id_rsa) 하여 저장한다.
