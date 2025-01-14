@@ -1,0 +1,21 @@
+### 사용할 tomcat 이미지 확인
+$ docker search tomcat
+
+### tomcat 컨테이너 실행 (향후 첨부 파일의 백업을 위한 볼륨 설정 필요)
+$ docker run -d --name tomcat-container -p 8080:8080 tomcat:9.0
+
+# 볼륨 예시1) 볼륨 마운트 (도커 볼륨이 /blog 디렉터리 관리)
+$ docker volume create blog-vol
+$ docker run -d --name tomcat-container -p 8080:8080 -v blog-vol:/blog tomcat:9.0
+
+# 볼륨 예시2) 바인드 마운트 (~/blod 디렉터리와 /blog 디렉터리 관리)
+$ docker run -d --name tomcat-container -p 8080:8080 -v ~/blog:/blog tomcat:9.0
+
+### 컨테이너 동작 확인
+$ docker ps
+
+### 컨테이너 내부로 war 파일 복사 (tomcat 컨테이너는 이미 실행 중이므로 바로 배포 결과 확인 가능)
+$ docker cp ~/myapp.war tomcat-container:/usr/local/tomcat/webapps
+
+### 브라우저로 배포 결과 확인
+http://192.168.65.1:8080/myapp

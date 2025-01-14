@@ -1,0 +1,81 @@
+* VirtualBox를 이용해 도커파일을 이용한 도커 이미지 빌드 시 용량 부족 문제 발생 해결을 위해 다음 단계를 진행하세요.
+* 가상 머신을 만들 때 하드디스크 용량을 25GB로 설정하나 이 용량이 모두 사용되지 않습니다.
+
+
+LVM으로 구성한 디스크 확장
+
+
+# LVM이란?
+물리적인 디스크 파티션 위에 추상화된 레이어를 제공하여 데이터를 저장할 수 있도록 볼륨을 생성합니다.
+이 때 생성된 논리적인 공간의 크기를 동적으로 조정할 수 있어 디스크 공간의 확장성과 유연성을 높일 수 있습니다.
+하나의 물리적인 디스크 공간을 논리적인 단위로 분할하여 할당할 수 있습니다.
+
+
+# LVM 단위
+1. PV (Physical Volume)
+  물리적인 디스크나 파티션을 의미합니다.
+2. VG (Volume Group)
+  하나 이상의 PV를 묶어서 만든 논리적인 그룹입니다. VG 내부에서 LV(논리적인 볼륨)을 생성할 수 있습니다.
+3. LV (Logical Volume)
+  VG에서 생성한 논리적인 저장 단위입니다. 파일 시스템의 스토리지를 위한 용도로 사용합니다.
+
+
+# 용량 확장을 위한 과정
+1. 사용 중인 용량 및 파일시스템 확인
+$ df -hT
+Filesystem                        Type   Size  Used Avail Use% Mounted on
+tmpfs                             tmpfs  392M  1.4M  390M   1% /run
+/dev/mapper/ubuntu--vg-ubuntu--lv ext4    12G  8.6G  2.1G  81% /          # 루트(/) 에서 12G 중 8.6G를 사용하고 있는 중입니다.
+tmpfs                             tmpfs  2.0G     0  2.0G   0% /dev/shm
+tmpfs                             tmpfs  5.0M     0  5.0M   0% /run/lock
+/dev/sda2                         ext4   2.0G  125M  1.7G   7% /boot
+tmpfs                             tmpfs  392M  4.0K  392M   1% /run/user/1000
+
+2. VG (Volume Group)에서 사용할 수 있는 용량 확인
+$ sudo vgdisplay
+  --- Volume group ---
+  VG Name               ubuntu-vg
+  System ID
+  Format                lvm2
+  Metadata Areas        1
+  Metadata Sequence No  2
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                1
+  Open LV               1
+  Max PV                0
+  Cur PV                1
+  Act PV                1
+  VG Size               <23.00 GiB         # 볼륨 그룹이 최대 23G이므로 논리적 파티션으로 23G 설정이 가능합니다.
+  PE Size               4.00 MiB
+  Total PE              5887
+  Alloc PE / Size       2943 / <11.50 GiB  # 볼륨 그룹 23G 중 최대 11.5G만 할당해서 사용 중입니다.
+  Free  PE / Size       2944 / 11.50 GiB   # 11.5G가 놀고 있습니다.
+  VG UUID               MCkC0Q-WByB-QzRO-Z10h-rTyw-U027-fYXJ4b
+
+3. LV 확인
+$ sudo lvscan
+  ACTIVE            '/dev/ubuntu-vg/ubuntu-lv' [<11.50 GiB] inherit
+
+4. LV 용량 확장
+$ sudo lvextend -l +100%FREE -n /dev/ubuntu-vg/ubuntu-lv
+  Size of logical volume ubuntu-vg/ubuntu-lv changed from <11.50 GiB (2943 extents) to <23.00 GiB (5887 extents).
+  Logical volume ubuntu-vg/ubuntu-lv successfully resized.
+
+5. 확장된 용량에 맞춰 파일시스템 확장
+$ sudo resize2fs /dev/ubuntu-vg/ubuntu-lv
+resize2fs 1.46.5 (30-Dec-2021)
+Filesystem at /dev/ubuntu-vg/ubuntu-lv is mounted on /; on-line resizing required
+old_desc_blocks = 2, new_desc_blocks = 3
+The filesystem on /dev/ubuntu-vg/ubuntu-lv is now 6028288 (4k) blocks long.
+
+6. 사용 중인 용량 및 파일시스템 확인
+$ df -hT
+Filesystem                        Type   Size  Used Avail Use% Mounted on
+tmpfs                             tmpfs  392M  1.4M  390M   1% /run
+/dev/mapper/ubuntu--vg-ubuntu--lv ext4    23G  8.6G   13G  40% /           # 루트(/) 공간이 많이 늘어났습니다.
+tmpfs                             tmpfs  2.0G     0  2.0G   0% /dev/shm
+tmpfs                             tmpfs  5.0M     0  5.0M   0% /run/lock
+/dev/sda2                         ext4   2.0G  125M  1.7G   7% /boot
+tmpfs                             tmpfs  392M  4.0K  392M   1% /run/user/1000

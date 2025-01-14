@@ -8,7 +8,6 @@ $ curl -s https://get.docker.com | sudo sh : curl을 이용해 도커 설치 | �
 
 ----------------------- 도커 설치 끝
 
-
 $ docker -v : 도커 설치 잘 되었는지 버전 확인
 
 ** docker는 앞에 sudo 없이(관리자 없이) 실행이 불가능, 번거로우니 그룹으로 지정하여 사용
@@ -21,10 +20,11 @@ $ sudo usermod -aG docker $USER : 도커 그룹에 사용자 이름 지정
 $ tail /etc/group : 그룹 리스트 확인하여 지정 체크
 (docker:x:999:lsj)
 
-$ newgrp docker : 방금 지정된 그룹 docker를 활성화
-
-$ docker run hello-world : 'sudo' 없이 도커 실행
-(docker 그룹에 사용자 이름을 지정해주었기에 실행 가능)
+$ newgrp docker : 방금 지정된 그룹 docker를 활성화 (변경 내용 적용)
 
 ----------------------- sudo 없이 도커 실행할 수 있게 docker 그룹에 사용자 이름을 지정
 
+$ docker info | grep -i 'docker root dir'
+Docker Root Dir: /var/lib/docker
+
+# 실제 운용 환경이라면 /var/lib/docker 디렉터리를 서버의 별도 하드 디스크에 마운트하여 사용하기를 권장

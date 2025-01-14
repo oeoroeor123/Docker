@@ -1,0 +1,43 @@
+# 베이스 이미지
+FROM ubuntu:22.04
+
+# 인자
+ARG VERSION
+
+# 이미지 정보
+LABEL maintainer="mgt<min@gmail.com>" title="Ubuntu On Jdk And Tomcat" version=$VERSION
+
+# 패키지 관리도구 apt 업데이트
+RUN apt update
+
+# openjdk-11-jdk 패키지 설치
+RUN apt install -y openjdk-11-jdk
+
+# wget 패키지 설치
+RUN apt install -y wget
+
+# 함께 설치 : RUN apt install -y openjdk-11-jdk wget
+
+# tomcat 9.0 다운로드 (/home/tomcat 에 다운로드하기)
+RUN wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.98/bin/apache-tomcat-9.0.98.tar.gz -P /home/tomcat
+
+# 압축 풀기 (/home/tomcat 에 압축풀기)
+RUN tar -xzvf /home/tomcat/apache-tomcat-9.0.98.tar.gz -C /home/tomcat
+
+# openjdk-11-jdk 환경 변수 설정
+ENV JAVA_HOME="/usr/lib/jvm/java-11-openjdk-amd64"
+
+# tomcat 포트 열기
+EXPOSE 8080
+
+# 작업 디렉터리 설정 (docker exec -it container-name bash 명령 시 작업 디렉터리가 열림)
+WORKDIR /home/tomcat/apache-tomcat-9.0.98
+
+# 실행할 명령어
+CMD ["/home/tomcat/apache-tomcat-9.0.98/bin/catalina.sh", "run"]
+
+# 도커 이미지 빌드 명령
+# docker build -t ubuntu-image:22.04 -f Dockerfile2 --build-arg VERSION=1.0 .
+#
+# 도커 컨테이너 실행 명령
+# docker run -d --name ubuntu-container -p 8080:8080 ubuntu-image:22.04

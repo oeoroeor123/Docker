@@ -1,0 +1,66 @@
+https://ap-northeast-2.console.aws.amazon.com/console/home?region=ap-northeast-2
+
+<계정>
+oeoroeor123@naver.com
+rosa96329!
+
+[ AWS 로그인 ]
+1. root 사용자로 로그인
+2. 아이디/비밀번호 입력
+3. 멀티팩터인증(MFA) 등록
+  1) 스마트폰에 Google Authenticator 앱 설치
+  2) AWS 화면에서 Authenticator app 선택 후 next
+  3) AWS 화면에서 Show QR code 클릭
+  4) 스마트폰에서 Google Authenticator 앱 실행 후 QR code 스캔 버튼 클릭
+  5) 스마트폰에서 Google Authenticator 앱 > Amazon Web Service 등록되고 주기적으로 비밀번호가 발급됨(OTP)
+  6) 연속해서 나타나는 OPT 2개를 AWS 화면에 입력 (Frist code, Second code) 후 Register MFA
+
+---------------------------------------------------------------------------
+
+[ AWS 보안 그룹 (방화벽) ]
+* 집에서 aws 사용 시, 보안 그룹 > 인바운드 규칙 편집에 ssh를 집 ip로 변경 필요
+
+1. 인스턴스에 접속 가능한 IP와 포트를 설정할 수 있다.
+2. 보안 그룹 설정
+  * 인바운드 규칙
+  1) SSH : my ip, 22 - 내 자리에서만 접속 가능
+  2) MYSQL : anywhere, 3306
+  3) HTTP : anywhere, 80 
+  4) HTTPS : anywhere, 443
+  5) TOMCAT : anywhere, 8080
+
+  * 아웃바운드 규칙
+  모든 트래픽 허용
+
+---------------------------------------------------------------------------
+
+[ 키 페어(key-pair) ]
+1. SSH 접속을 위한 공개키와 개인키를 의미
+2. ssh-keygen 명령어로 생성할 필요 없이 키 페어 생성하면 된다.
+3. 키 페어를 생성하면 곧바로 개인키를 다운로드 받을 수 있다.
+4. 키 페어를 생성하면 자동으로 공개키는 인스턴스에 등록된다.
+
+-------------------------------------------------------------------------------
+
+[ AWS 인스턴스 (= AWS 서버, EC2) ]
+1. IssS : Infra as a Service, 인프라(하드웨어)를 서비스로 제공하는 클라우드
+2. 서버를 임대해서 사용하는 방식
+3. 프리티어 : t2.micro, 한달 750시간 무료 제공 (CPU 1개, memory 1GB, SSD 30GB 제공)
+4. OnDemand : 사용한 만큼만 비용을 지불하는 방식 (월 1회 달러로 결제)
+5. SSH 이용한 접속
+6. public ip 제공 : 전세계 어디서나 접속 가능
+7. 설정
+  1) 유형     : t2.micro
+  2) OS       : Ubuntu Server 22.04 LTS - 프리티어
+  3) 키 페어  : 20250114-kp
+  4) 보안그룹: 20250114-sg
+  5) 네트워크 설정
+      ① vpc : default
+      ② subnet : ap-northeast-2a
+      ③ 퍼블릭 ip : 자동 할당 활성화
+  6) 스토리지 : 범용 SSD (gp2), 최대 30GB 제공
+
+AWS Elastic IP (탄련적 ip)
+1. 고정된 퍼블릭 IP를 사용할 수 있다.
+2. Elastic IP를 할당 받은 뒤 EC2 인스턴스에 연결하면된다. (무료)
+3. Elastic Ip를 할당 받은 뒤 EC2 인스턴스에 연결하지 않으면 과금 된다.

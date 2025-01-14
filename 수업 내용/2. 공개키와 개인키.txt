@@ -1,6 +1,6 @@
-공개키와 개인키
+[ 공개키와 개인키 ]
 
-powershell 실행 후 작업한다. (키는 어디서 만들든 상관 없음, 서버에서도 만들기 가능)
+* powershell 실행 후 작업한다. (키는 어디서 만들든 상관 없음, 서버에서도 만들기 가능)
 
 1. ssh-keygen 명령으로 공개키(자물쇠)와 개인키(열쇠)를 만든다.
 $ ssh-keygen -t rsa -b 2048
@@ -15,4 +15,7 @@ $ scp C:/Users/사용자명/.ssh/id_rsa.pub <계정명>@<ip주소>:~/.ssh/author
 
 3. 개인키는 개인 pc에 저장한다.
 mobaxterm 열고, [Edit Session] - [Advanced SSH settings] -
-Use private key 선택 후 공개키 위치 선택 (C:/Users/사용자명/.ssh/id_rsa) 하여 저장한다.
+[Use private key] - C:/Users/사용자명/.ssh/id_rsa (선택 후 공개키 위치 선택) 파일을 등록한다.
+
+
+이제 더 이상 비밀번호를 입력하지 않아도 접속할 수 있다.

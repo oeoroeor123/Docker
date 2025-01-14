@@ -1,0 +1,45 @@
+# 베이스 이미지 : 우분투(Debian 계열) 기반의 mysql:8.0
+FROM mysql:8.0-debian
+
+# 인자 설정
+ARG ROOT_PASSWORD
+ARG USER_PASSWORD
+ARG WORK_DIR=/home/mysql
+
+# 환경 변수 설정
+ENV MYSQL_ROOT_PASSWORD=$ROOT_PASSWORD
+ENV MYSQL_DATABASE=db_myapp
+ENV MYSQL_USER=greenit
+ENV MYSQL_PASSWORD=$USER_PASSWORD
+ENV TZ=Asia/Seoul
+
+# mysql 포트 열기
+EXPOSE 3306
+
+# 패키지 관리자 업데이트
+RUN apt update
+
+# wget, unzip 패키지 설치
+RUN apt install -y wget unzip
+
+# /home/mysql 디렉터리에 스크립트 압축 파일 내려 받기
+RUN wget --no-check-certificate https://download.blog.naver.com/open/f267ee5a467978cce3066654658af98f217c80db/HvuZCjGCkiI7uI7SM9B1SzMtOVTTrF59QdfDNKvKOSwfa8pH33KpF8-52tTUANnweydtqlKYK0ohQnTw4aCPNQ/data.zip -P $WORK_DIR
+
+# 작업 디렉터리 설정
+WORKDIR $WORK_DIR
+
+# 다운로드 받은 스크립트 압축 파일에 권한 주기
+RUN chmod 777 $WORK_DIR/data.zip
+
+# 압축 풀기 (작업 디렉터리 아래에 data.sql 파일이 생성됨)
+RUN unzip $WORK_DIR/data.zip
+
+# /docker-entrypoint-initdb.d : 컨테이너가 실행될 때 불러올 스크립트 파일이 위치하는 디렉터리
+# /home/mgt 디렉터리에 init-db.sh 스크립트 파일을 만들고 /docker-entrypoint-initdb.d 디렉터리에 복사
+# init-db.sh 파일이 /home/mysql/data.sql 파일을 실행하는 셸 스크립트 코드를 가짐
+# COPY <host경로> <container경로>
+# host경로를 /home/mgt/init-db.sh 작성하면 경로 인식 문제가 발생하여 파일명만 작성
+COPY init-db.sh /docker-entrypoint-initdb.d
+
+# 실행할 명령어
+CMD ["mysqld"]

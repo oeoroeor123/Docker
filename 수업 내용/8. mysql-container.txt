@@ -1,0 +1,165 @@
+[ mysql-container 설치 ]
+
+### Windows 운영체제에서 서비스 실행 후 실행 중인 MySQL 서비스를 찾아서 서비스 중지
+
+### VirtualBox 네트워크 설정에서 포트 포워딩 규칙 추가 후 가상 머신 시작
+# 192.168.56.1    3306    10.0.2.15    3306
+
+### 실행 중인 mysql 서비스 확인 및 종료를 위한 lsof 패키지 설치
+$ sudo apt install -y lsof
+
+### 3306 포트를 사용 중인 프로세스 확인
+$ sudo lsof -i:3306
+COMMAND PID  USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+mysqld  765 mysql   23u  IPv4  21773      0t0  TCP localhost:mysql (LISTEN)
+
+### 확인된 프로세스의 ID(PID)를 이용해서 프로세스 종료
+$ sudo kill 765
+
+# 컨테이너 내부 /etc/mysql/conf.d 디렉터리와 연결할 호스트 디렉터리 생성
+### 이 디렉터리에 환경 설정 파일 my.cnf 파일을 만들면 컨테이너 내부 /etc/mysql/conf.d 디렉터리에도 my.cnf 파일이 생성됨
+$ mkdir ~/mysql
+
+### 컨테이너 내부 /etc/mysql/conf.d 디렉터리의 소유자:그룹으로 변경(root:root)해야 데이터 백업이 가능함
+$ sudo chown root ~/mysql
+$ sudo chgrp root ~/mysql
+
+### 컨테이너 내부 /var/lib/mysql 디렉터리가 mysql의 데이터 디렉터리인데 이 디렉터리를 백업할 볼륨 생성
+$ docker volume create mysql-vol
+
+### 컨테이너 실행
+# -p 호스트포트:컨테이너포트
+# -v 호스트디렉터리:컨테이너디렉터리 (바인드마운트)
+# -v 도커볼륨:컨테이너디렉터리 (볼륨 마운트)
+# -e 환경변수=값
+$ docker run -d \
+--name mysql-container \
+-p 3306:3306 \
+-v mysql-vol:/var/lib/mysql \
+-v ~/mysql:/etc/mysql/conf.d \
+-e MYSQL_ROOT_PASSWORD=root \
+-e MYSQL_USER=greenit \
+-e MYSQL_PASSWORD=greenit \
+-e TZ=Asia/Seoul \
+mysql:8.0
+
+* 컨테이너 등록 후 바인드 마운트 / 볼륨 마운트 2개를 모두 쓰거나, 1개를 선택해 작업할 수 있다.
+바인드 마운트 : 자주 활용되는 경우 사용
+볼륨 마운트 : 자주 활용되지 않는 저장용으로 사용
+
+해당 작업이 필요한 이유 ?
+컨테이너가 중지되거나 삭제될 경우, /etc/mysql/conf.d (컨테이너 디렉터리)가 날아감
+컨테이너 내부 내용을 외부에 연결하여 보관하면 컨테이너가 꺼지더라도 무관하도록 내용을 백업해두는 작업
+
+[ 바인드 마운트 방식 ]
+호스트 디렉터리:컨테이너 디렉터리 - 직접적으로 사용되는 데이터 (자주 수정하거나 사용되는 경우)
+-v ~/mysql:/etc/mysql/conf.d
+
+[ 볼륨 마운트 방식 사용 ]
+도커 볼륨:컨테이너 디렉터리 - 데이터 저장용 데이터 (자주 활용되지 않는 저장용의 경우)
+-v mysql-vol:/var/lib/mysql
+
+### 컨테이너 동작 확인
+$ docker ps
+
+### my.cnf 환경 설정 파일을 ~/mysql 디렉터리에 만들기 (바인드 마운트에 의해서 컨테이너 내부 /etc/mysql/conf.d 디렉터리에 같은 파일이 생김)
+$ sudo vi ~/mysql/my.cnf
+[client]
+default-character-set = utf8mb4
+[mysql]
+default-character-set = utf8mb4
+[mysqldump]
+default-character-set = utf8mb4
+[mysqld]
+init_connect = 'SET collation_connection = utf8_general_ci'
+init_connect = 'SET NAMES utf8'
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+skip-character-set-client-handshake
+
+### 실행 중인 컨테이너 내부로 들어가기
+$ docker exec -it mysql-container bash
+
+### root 계정으로 mysql 실행하기
+bash-5.1# mysql -u root -p
+Enter password: root
+
+### my.cnf 환경 설정 파일이 잘 적용되었는지 확인
+mysql> status
+--------------
+Server characterset:    utf8mb4
+Db     characterset:    utf8mb4
+Client characterset:    utf8mb4    <- latin1 이면 실패
+Conn.  characterset:    utf8mb4    <- latin1 이면 실패
+--------------
+
+### greenit 계정에 권한 주기
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'greenit'@'%';
+
+### mysql 종료
+mysql> exit
+
+### 컨테이너 종료
+bash-5.1# exit
+
+### 컨테이너 내부 /tmp 디렉터리로 sql 스크립트 파일 복사하기
+$ docker cp ~/data.sql mysql-container:/tmp
+
+### 실행 중인 컨테이너 내부로 들어가기
+$ docker exec -it mysql-container bash
+
+### /tmp 디렉터리로 복사한 sql 스크립트 파일 실행하기
+bash-5.1# cat /tmp/data.sql | mysql -u greenit -p
+Enter password: greenit
+
+### greenit 계정으로 mysql 실행하기
+bash-5.1# mysql -u greenit -p
+Enter password: greenit
+
+### sql 스크립트 실행 결과 확인해 보기
+mysql> show databases;
+mysql> use db_myapp;
+mysql> select * from tbl_user;
+mysql> insert into tbl_notice values(null, 1, 'test title', 'test contents', now());
+mysql> commit;
+mysql> exit
+bash-5.1# exit
+
+* 도커 볼륨 동작 확인(컨테이너 삭제 후 다시 생성해도 테이블의 데이터가 남아 있는지 확인)
+
+### 컨테이너 중지
+$ docker stop mysql-container
+
+### 컨테이너 삭제
+$ docker rm mysql-container
+
+### 컨테이너 실행
+$ docker run -d \
+--name mysql-container \
+-p 3306:3306 \
+-v mysql-vol:/var/lib/mysql \
+-v ~/mysql:/etc/mysql/conf.d \
+-e MYSQL_ROOT_PASSWORD=root \
+-e MYSQL_USER=greenit \
+-e MYSQL_PASSWORD=greenit \
+-e TZ=Asia/Seoul \
+mysql:8.0
+
+### 컨테이너 동작 확인
+$ docker ps
+
+### 실행 중인 컨테이너 내부로 들어가기
+$ docker exec -it mysql-container bash
+
+### greenit 계정으로 mysql 실행하기
+bash-5.1# mysql -u greenit -p
+Enter password: greenit
+
+### 데이터 확인
+mysql> use db_semi;
+mysql> select * from tbl_notice;
++-----------+---------+--------------+-----------------+---------------------+
+| notice_id | user_id | notice_title | notice_contents | created_at          |
++-----------+---------+--------------+-----------------+---------------------+
+|         1 |       1 | test title   | test contents   | 2025-01-09 19:37:52 |
++-----------+---------+--------------+-----------------+---------------------+
