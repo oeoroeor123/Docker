@@ -1,0 +1,41 @@
+스프링 부트 프로젝트와 도커 파일
+
+1. (사전지식) 스프링 부트 프로젝트
+  1) 내장된 톰캣을 사용하므로 독립 실행 파일로 빌드할 수 있습니다. (jar 파일로 빌드)
+  2) maven 설치 없이 빌드가 가능한 mvnw 스크립트 파일이 제공됩니다.
+  3) ContextPath를 사용하지 않습니다.
+
+2. demo 부트 프로젝트 생성
+
+3. demo 부트 프로젝트에 Dockerfile 생성
+----------
+# 베이스 이미지
+FROM openjdk:17
+# 인자
+ARG VERSION
+# 작업 디렉터리 (컨테이너 내부 경로)
+WORKDIR /app
+# 작업 디렉터리로 jar 복사
+COPY target/demo-0.0.1-SNAPSHOT.jar demo.jar
+# 실행 명령
+ENTRYPOINT [ "java" ]
+# 실행 명령
+CMD [ "-jar", "demo.jar" ]
+----------
+
+4. demo 부트 프로젝트 github에 push 하기
+
+5. github에서 demo 부트 프로젝트 pull 받아 빌드
+$ git clone https://github.com/teacher-min/demo.git
+$ cd demo
+$ chmod u+x mvnw
+$ ./mvnw clean package
+
+6. 도커 이미지 빌드
+$ docker image build -t demo-image:1.0 --build-arg VERSION=1.0 .
+
+7. 도커 컨테이너 생성
+$ docker run -d --name demo-container -p 8080:8080 demo-image:1.0
+
+8. 확인
+http://192.168.56.1:8080
