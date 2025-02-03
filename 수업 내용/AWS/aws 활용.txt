@@ -1,9 +1,5 @@
 https://ap-northeast-2.console.aws.amazon.com/console/home?region=ap-northeast-2
 
-<계정>
-oeoroeor123@naver.com
-rosa96329!
-
 [ AWS 로그인 ]
 1. root 사용자로 로그인
 2. 아이디/비밀번호 입력
